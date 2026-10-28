@@ -1,0 +1,319 @@
+// DivineCore Technologies HRMS - Production MySQL Schema
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("EMPLOYEE")
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employee      Employee?
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  leaveReviews  LeaveRequest[]               @relation("LeaveReviewer")
+  corrections   AttendanceCorrectionRequest[] @relation("CorrectionReviewer")
+
+  @@map("users")
+}
+
+model Department {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  code        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  designations Designation[]
+  employees    Employee[]
+
+  @@map("departments")
+}
+
+model Designation {
+  id           String      @id @default(uuid())
+  name         String
+  code         String
+  level        Int         @default(1)
+  departmentId String
+  department   Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  employees    Employee[]
+
+  @@unique([name, departmentId])
+  @@map("designations")
+}
+
+model Employee {
+  id                  String           @id @default(uuid())
+  employeeId          String           @unique
+  userId              String           @unique
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName           String
+  lastName            String
+  displayName         String?
+  gender              String?
+  dob                 DateTime?
+  profilePhoto        String?
+  phone               String?
+  personalEmail       String?
+  
+  departmentId        String?
+  department          Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  designationId       String?
+  designation         Designation?     @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  reportingManagerId  String?
+  reportingManager    Employee?        @relation("ManagerSubordinates", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+  subordinates        Employee[]       @relation("ManagerSubordinates")
+  
+  joiningDate         DateTime
+  confirmationDate    DateTime?
+  probationStatus     String           @default("PENDING")
+  employmentStatus    String           @default("ACTIVE")
+  employmentType      String           @default("FULL_TIME")
+  workLocation        String           @default("OFFICE")
+  
+  currentAddress      String?          @db.Text
+  permanentAddress    String?          @db.Text
+  emergencyContactName String?
+  emergencyContactPhone String?
+  emergencyContactRelation String?
+
+  basicSalary         Float?
+  hra                 Float?
+  specialAllowance    Float?
+  otherAllowances     Float?
+  grossSalary         Float?
+  ctc                 Float?
+  bankName            String?
+  accountNumber       String?
+  ifscCode            String?
+  panNumber           String?
+  uanNumber           String?
+  pfNumber            String?
+  esiNumber           String?
+  
+  resignationDate     DateTime?
+  exitDate            DateTime?
+  exitReason          String?          @db.Text
+  noticePeriodDays    Int?             @default(30)
+
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  attendances         AttendanceRecord[]
+  attendanceCorrections AttendanceCorrectionRequest[]
+  leaveRequests       LeaveRequest[]
+  leaveBalances       LeaveBalance[]
+  documents           EmployeeDocument[]
+
+  @@map("employees")
+}
+
+model AttendanceRecord {
+  id                    String           @id @default(uuid())
+  employeeId            String
+  employee              Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date                  DateTime         @db.Date
+  checkInTime           DateTime?
+  checkOutTime          DateTime?
+  status                String           @default("PRESENT")
+  
+  totalHours            Float?           @default(0)
+  breakHours            Float?           @default(0)
+  effectiveHours        Float?           @default(0)
+  overtimeHours         Float?           @default(0)
+  lateMinutes           Int?             @default(0)
+  earlyExitMinutes      Int?             @default(0)
+  
+  checkInMethod         String           @default("WEB")
+  checkInIp             String?
+  checkInLocation       String?
+  checkInSelfie         String?
+  
+  checkOutMethod        String?
+  checkOutIp            String?
+  checkOutLocation      String?
+  checkOutSelfie        String?
+  
+  isManualEntry         Boolean          @default(false)
+  isRegularized         Boolean          @default(false)
+  notes                 String?          @db.Text
+
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  corrections           AttendanceCorrectionRequest[]
+
+  @@unique([employeeId, date])
+  @@map("attendance_records")
+}
+
+model AttendanceCorrectionRequest {
+  id                  String            @id @default(uuid())
+  employeeId          String
+  employee            Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendanceRecordId  String?
+  attendanceRecord    AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+  
+  date                DateTime          @db.Date
+  requestedCheckIn    DateTime
+  requestedCheckOut   DateTime
+  reason              String            @db.Text
+  
+  status              String            @default("PENDING")
+  reviewedById        String?
+  reviewedBy          User?             @relation("CorrectionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes         String?           @db.Text
+  reviewedAt          DateTime?
+  
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("attendance_corrections")
+}
+
+model LeaveType {
+  id                 String         @id @default(uuid())
+  name               String         @unique
+  code               String         @unique
+  description        String?
+  daysAllowedPerYear Int            @default(12)
+  isPaid             Boolean        @default(true)
+  requiresProof      Boolean        @default(false)
+  colorCode          String         @default("#3B82F6")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  leaveBalances      LeaveBalance[]
+  leaveRequests      LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id            String     @id @default(uuid())
+  employeeId    String
+  employee      Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  leaveType     LeaveType  @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  year          Int
+  
+  allocatedDays Float      @default(0)
+  usedDays      Float      @default(0)
+  pendingDays   Float      @default(0)
+  remainingDays Float      @default(0)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id              String        @id @default(uuid())
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId     String
+  leaveType       LeaveType     @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
+  totalDays       Float
+  isHalfDay       Boolean       @default(false)
+  halfDayType     String?
+  reason          String        @db.Text
+  documentUrl     String?
+  
+  status          String        @default("PENDING")
+  reviewedById    String?
+  reviewedBy      User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  rejectionReason String?       @db.Text
+  reviewedAt      DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("leave_requests")
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  name        String
+  date        DateTime @unique @db.Date
+  description String?
+  isOptional  Boolean  @default(false)
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("holidays")
+}
+
+model EmployeeDocument {
+  id           String   @id @default(uuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  documentName String
+  documentType String
+  fileUrl      String
+  fileSize     Int?
+  uploadedAt   DateTime @default(now())
+
+  @@map("employee_documents")
+}
+
+model CompanySetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  category    String   @default("GENERAL")
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String   @db.Text
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
