@@ -67,6 +67,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   if (departmentId) where.departmentId = departmentId;
   if (employmentStatus) where.employmentStatus = employmentStatus;
   if (workLocation) where.workLocation = workLocation;
+  where.user = { role: { not: 'SUPER_ADMIN' } };
 
   const isPrivileged = ['SUPER_ADMIN', 'HR_ADMIN', 'ACCOUNTS_ADMIN'].includes(req.user!.role);
 
