@@ -130,11 +130,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="px-4 py-3 mx-3 my-3 rounded-xl bg-[#152238]/70 border border-[#1E3E62]/60">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 font-bold text-sm">
-              {user?.employee?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+              {user?.role === 'SUPER_ADMIN' ? 'A' : (user?.employee?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U')}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-white truncate">
-                {user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}
+                {user?.role === 'SUPER_ADMIN' ? 'Admin' : user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}
               </p>
               <p className="text-[10px] font-medium text-sky-300/80 truncate">
                 {roleNameDisplay[user?.role || ''] || user?.role}
