@@ -96,11 +96,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* User Pill */}
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-sky-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-            {user?.employee?.firstName?.[0] || 'D'}
+            {user?.role === 'SUPER_ADMIN' ? 'A' : (user?.employee?.firstName?.[0] || 'D')}
           </div>
           <div className="hidden lg:block text-left">
             <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[130px]">
-              {user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}
+              {user?.role === 'SUPER_ADMIN' ? 'Admin' : user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}
             </p>
             <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-sky-400 font-semibold">
               <ShieldCheck className="w-3 h-3" />
