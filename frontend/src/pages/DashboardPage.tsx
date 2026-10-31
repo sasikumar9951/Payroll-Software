@@ -132,7 +132,7 @@ export const DashboardPage: React.FC = () => {
               <span>Enterprise HRMS & Workplace Portal</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Good day, {user?.employee?.firstName || user?.email?.split('@')[0]}
+              Good day, {user?.role === 'SUPER_ADMIN' ? 'Admin' : (user?.employee?.firstName || user?.email?.split('@')[0])}
             </h1>
             <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl">
               Shift timing: 09:00 AM – 06:00 PM IST (15m grace window). Review real-time employee attendance and requests below.
